@@ -125,8 +125,9 @@
 
   <div class="settings" id="settings">
     <label for="apiKeyInput">Google API anahtarı</label>
-    <input id="apiKeyInput" type="text" placeholder="AIza... ile başlayan anahtarınız">
+    <input id="apiKeyInput" type="password" placeholder="AIza... ile başlayan anahtarınız">
     <button class="savebtn" id="saveKeyBtn">Kaydet ve gerçek verilerle kullan</button>
+    <button type="button" id="toggleKeyBtn" style="background:none;border:none;color:var(--ink-soft);font-size:11px;text-decoration:underline;padding:8px 0 0;cursor:pointer;">Anahtarı göster</button>
     <div class="help">
       Anahtarınız yoksa: console.cloud.google.com adresinde ücretsiz bir proje açın,
       "Maps JavaScript API" ve "Places API"yi etkinleştirin, ardından bir API anahtarı oluşturun.
@@ -190,6 +191,7 @@ const els = {
   settings: document.getElementById('settings'),
   apiKeyInput: document.getElementById('apiKeyInput'),
   saveKeyBtn: document.getElementById('saveKeyBtn'),
+  toggleKeyBtn: document.getElementById('toggleKeyBtn'),
   locbar: document.getElementById('locbar'),
   locText: document.getElementById('locText'),
   locBtn: document.getElementById('locBtn'),
@@ -205,6 +207,11 @@ const els = {
 els.apiKeyInput.value = apiKey;
 
 els.gearBtn.onclick = () => els.settings.classList.toggle('open');
+els.toggleKeyBtn.onclick = () => {
+  const show = els.apiKeyInput.type === 'password';
+  els.apiKeyInput.type = show ? 'text' : 'password';
+  els.toggleKeyBtn.textContent = show ? 'Anahtarı gizle' : 'Anahtarı göster';
+};
 els.refreshBtn.onclick = () => { if (userLoc) search(true); };
 els.saveKeyBtn.onclick = () => {
   apiKey = els.apiKeyInput.value.trim();
