@@ -205,6 +205,7 @@ const els = {
 els.apiKeyInput.value = apiKey;
 
 els.gearBtn.onclick = () => els.settings.classList.toggle('open');
+els.refreshBtn.onclick = () => { if (userLoc) search(true); };
 els.saveKeyBtn.onclick = () => {
   apiKey = els.apiKeyInput.value.trim();
   localStorage.setItem("nyy_api_key", apiKey);
@@ -323,12 +324,22 @@ function showError(msg){
 }
 function clearStatus(){ els.statusArea.innerHTML = ''; }
 
-function search(){
+function search(forceRefresh = false){
   clearStatus();
   if (apiKey && mapsLoaded && placesService) {
-    els.modeText.textContent = "Canlı veri";
     els.sampleNote.style.display = 'none';
+    els.refreshBtn.style.display = 'inline-block';
+
+    const cache = readCache(activeCategory.id);
+    if (!forceRefresh && isCacheValid(cache, userLoc)) {
+      els.modeText.textContent = `Önbellek • ${relativeTime(cache.timestamp)}`;
+      renderList(sortWeighted(cache.items));
+      return;
+    }
+
+    els.modeText.textContent = "Canlı veri";
     els.list.innerHTML = '';
+    els.refreshBtn.disabled = true;
     els.statusArea.innerHTML = '<div class="spinner">Restoranlar aranıyor...</div>';
 
     const request = {
@@ -340,6 +351,7 @@ function search(){
 
     placesService.nearbySearch(request, (results, status) => {
       clearStatus();
+      els.refreshBtn.disabled = false;
       if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
         showError("Sonuç alınamadı (durum: " + status + "). API anahtarınızın 'Places API' için etkin ve faturalandırmanın açık olduğundan emin olun.");
         els.list.innerHTML = '';
@@ -356,11 +368,13 @@ function search(){
         lng: r.geometry?.location?.lng() ?? null,
         placeId: r.place_id || null,
       }));
+      writeCache(activeCategory.id, items, userLoc);
       renderList(sortWeighted(items));
     });
   } else {
     els.modeText.textContent = apiKey ? "Google Maps yükleniyor..." : "Örnek veri";
     els.sampleNote.style.display = apiKey ? 'none' : 'block';
+    els.refreshBtn.style.display = 'none';
     const filtered = activeCategory.id === 'all'
       ? sampleRestaurants
       : sampleRestaurants.filter(r => r.cat === activeCategory.id);
