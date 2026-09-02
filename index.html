@@ -79,8 +79,13 @@
   }
   .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
 
-  .sortrow{display:flex;justify-content:space-between;align-items:center;padding:16px 20px 6px;}
+  .sortrow{display:flex;justify-content:space-between;align-items:center;padding:16px 20px 6px;gap:10px;}
   .sortrow span{font-size:12px;color:var(--ink-soft);}
+  .refreshbtn{
+    border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;
+    padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;flex-shrink:0;
+  }
+  .refreshbtn:disabled{opacity:0.5;}
 
   .list{padding:8px 20px 0;display:flex;flex-direction:column;gap:12px;}
   .card{
@@ -139,7 +144,8 @@
 
   <div class="sortrow">
     <span id="countText">— sonuç</span>
-    <span id="modeText" style="font-size:12px;color:#A9781E;font-weight:600;"></span>
+    <span id="modeText" style="font-size:12px;color:#A9781E;font-weight:600;flex:1;"></span>
+    <button class="refreshbtn" id="refreshBtn" style="display:none;">Google'dan yenile</button>
   </div>
 
   <div id="statusArea"></div>
@@ -190,6 +196,7 @@ const els = {
   filters: document.getElementById('filters'),
   countText: document.getElementById('countText'),
   modeText: document.getElementById('modeText'),
+  refreshBtn: document.getElementById('refreshBtn'),
   list: document.getElementById('list'),
   statusArea: document.getElementById('statusArea'),
   sampleNote: document.getElementById('sampleNote'),
@@ -276,6 +283,39 @@ function weightedScore(rating, reviews, avg, m=30){
 function sortWeighted(items){
   const avg = items.reduce((a,r)=>a+r.rating,0) / (items.length || 1);
   return [...items].sort((a,b)=> weightedScore(b.rating,b.reviews,avg) - weightedScore(a.rating,a.reviews,avg));
+}
+
+// Önbellekleme: her kategori için son çekilen sonuçlar bir süre saklanır,
+// böylece her "Konumumu bul" veya kategori değişiminde Google'a yeniden ücretli
+// bir istek gitmez. Kullanıcı isterse "Google'dan yenile" ile canlı veriyi zorlayabilir.
+const CACHE_MS = 30 * 60 * 1000; // 30 dakika
+const CACHE_DIST_KM = 0.3; // konum bu kadar değişmişse önbellek geçersiz sayılır
+
+function readCache(categoryId){
+  try {
+    const raw = localStorage.getItem(`nyy_cache_${categoryId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function writeCache(categoryId, items, loc){
+  try {
+    localStorage.setItem(`nyy_cache_${categoryId}`, JSON.stringify({
+      timestamp: Date.now(), lat: loc.lat, lng: loc.lng, items,
+    }));
+  } catch {}
+}
+function isCacheValid(cache, loc){
+  if (!cache) return false;
+  if (Date.now() - cache.timestamp > CACHE_MS) return false;
+  if (haversine(loc.lat, loc.lng, cache.lat, cache.lng) > CACHE_DIST_KM) return false;
+  return true;
+}
+function relativeTime(ts){
+  const mins = Math.round((Date.now() - ts) / 60000);
+  if (mins < 1) return "az önce";
+  if (mins < 60) return `${mins} dakika önce`;
+  const hrs = Math.round(mins / 60);
+  return `${hrs} saat önce`;
 }
 
 function showError(msg){
