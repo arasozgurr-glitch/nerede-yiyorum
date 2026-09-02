@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FAF6EF">
+<title>Nerede Yiyorum</title>
+<style>
+:root{--bg:#FAF6EF;--ink:#221D19;--soft:#6B615A;--accent:#C1432A;--gold:#A9781E;--card:#fff;--line:#E8E0D4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.app{max-width:460px;min-height:100vh;margin:auto;padding-bottom:40px}
+header{padding:calc(20px + env(safe-area-inset-top)) 20px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+h1{font-size:22px;margin:0 0 4px}.sub{margin:0;color:var(--soft);font-size:14px}.gear{border:0;background:none;font-size:20px;color:var(--soft)}
+.settings,.locbar{margin:16px 20px 0;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.settings{display:none}.settings.open{display:block}.settings label{display:block;font-size:12px;font-weight:700;color:var(--soft);margin-bottom:6px}
+.settings input{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:#FCFAF6;margin-bottom:10px}
+.savebtn,.locbtn,.refreshbtn{border:0;border-radius:8px;padding:9px 13px;font-weight:700}.savebtn{width:100%;background:var(--ink);color:#fff}
+.locbar{display:flex;align-items:center;gap:10px}.dot{width:8px;height:8px;border-radius:50%;background:var(--soft)}.active .dot{background:#3C7A4B}
+.loctext{flex:1;font-size:13px;color:var(--soft)}.locbtn,.refreshbtn{background:var(--accent);color:#fff}.locbtn:disabled{opacity:.5}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:18px 20px 4px;scrollbar-width:none}.filters::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 16px;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--soft);font-size:13px;font-weight:700}
+.chip.active{background:var(--ink);border-color:var(--ink);color:#fff}
+.sortrow{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 6px;font-size:12px;color:var(--soft)}
+.actions{display:flex;align-items:center;gap:8px}.refreshbtn{display:none;font-size:11px}
+.list{padding:8px 20px;display:flex;flex-direction:column;gap:12px}.card{display:flex;gap:12px;padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px}
+.thumb{width:56px;height:56px;border-radius:10px;background:#F1E8D9;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+.info{min-width:0;flex:1}.top{display:flex;justify-content:space-between;gap:8px}.name{margin:0;font-size:15px;font-weight:700}.rank{font-size:11px;font-weight:700;color:var(--gold);background:#F5EBD4;padding:2px 7px;border-radius:6px}
+.addr{margin:2px 0 6px;color:var(--soft);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{display:flex;gap:9px;font-size:12px}.star{color:var(--accent)}.dist{margin-left:auto;color:var(--soft)}
+.note,.error{margin:16px 20px 0;padding:13px;border-radius:12px;font-size:12px;line-height:1.55}.note{background:#F5EBD4;color:#5A4416}.error{background:#FBE4DE;color:#8F2E1B}
+.spinner{text-align:center;color:var(--soft);font-size:13px;padding:24px 0}
+.help{font-size:11px;line-height:1.5;color:var(--soft);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div><h1>Nerede Yiyorum</h1><p class="sub">Konumuna en yakın, en yüksek puanlı yerler</p></div><button class="gear" id="gearBtn">⚙️</button></header>
+<div class="settings" id="settings">
+<label for="apiKeyInput">Google API anahtarı</label>
+<input id="apiKeyInput" type="password" autocomplete="off" placeholder="Kısıtlanmış Google Maps API anahtarınız">
+<button class="savebtn" id="saveKeyBtn">Kaydet</button>
+<div class="help">Anahtar yalnızca bu cihazın tarayıcısında saklanır. API anahtarınızı sohbet üzerinden paylaşmayın.</div>
+</div>
+<div class="locbar" id="locbar"><span class="dot"></span><span class="loctext" id="locText">Konum henüz alınmadı</span><button class="locbtn" id="locBtn">Konumumu bul</button></div>
+<div class="filters" id="filters"></div>
+<div class="sortrow"><span id="countText">— sonuç</span><div class="actions"><span id="modeText"></span><button class="refreshbtn" id="refreshBtn">Google'dan yenile</button></div></div>
+<div id="statusArea"></div><div class="list" id="list"></div>
+<div class="note" id="sampleNote">Şu an örnek veri gösteriliyor. Google API anahtarı ekleyip konumunuzu bulduğunuzda gerçek restoran verileri kullanılacaktır.</div>
+</div>
+<script>
+const CATEGORIES=[
+{id:"all",label:"Tümü",keywords:[]},
+{id:"kebap",label:"Kebap",keywords:["kebap","kebapçı","ocakbaşı"]},
+{id:"deniz",label:"Deniz Ürünleri",keywords:["balık","deniz","seafood","fish"]},
+{id:"vegan",label:"Vegan",keywords:["vegan"]},
+{id:"fastfood",label:"Fast Food",keywords:["burger","hamburger","fast food","pizza","döner","doner","tost"]},
+{id:"kahvalti",label:"Kahvaltı",keywords:["kahvaltı","breakfast","serpme"]},
+{id:"tatli",label:"Tatlı",keywords:["tatlı","pastane","baklava","dessert","patisserie"]}
+];
+const sample=[
+{name:"Develi Kebap",rating:4.7,reviews:2840,addr:"Örnek veri",emoji:"🍢",lat:41.005,lng:28.977},
+{name:"Sahil Balık Evi",rating:4.5,reviews:1120,addr:"Örnek veri",emoji:"🐟",lat:41.012,lng:28.965},
+{name:"Yeşil Sofra",rating:4.8,reviews:210,addr:"Örnek veri",emoji:"🥗",lat:40.998,lng:28.982},
+{name:"Köşe Burger",rating:4.2,reviews:3400,addr:"Örnek veri",emoji:"🍔",lat:41.009,lng:28.970},
+{name:"Anne Kahvaltısı",rating:4.9,reviews:87,addr:"Örnek veri",emoji:"🍳",lat:41.001,lng:28.990},
+{name:"Fırından Tatlı",rating:4.6,reviews:640,addr:"Örnek veri",emoji:"🍰",lat:41.006,lng:28.960}
+];
+let active=CATEGORIES[0],userLoc=null,apiKey=localStorage.getItem("nyy_api_key")||"",mapsLoaded=false,placesService=null;
+const CACHE_TTL=15*60*1000,MOVE_KM=.5;
+let cache=null,cacheAt=0,cacheLoc=null;
+const $=id=>document.getElementById(id);
+$("apiKeyInput").value=apiKey;
+$("gearBtn").onclick=()=>$("settings").classList.toggle("open");
+$("saveKeyBtn").onclick=()=>{apiKey=$("apiKeyInput").value.trim();localStorage.setItem("nyy_api_key",apiKey);$("settings").classList.remove("open");if(apiKey){loadMaps();if(userLoc)search(true)}};
+CATEGORIES.forEach(c=>{const e=document.createElement("button");e.className="chip"+(c.id==="all"?" active":"");e.textContent=c.label;e.onclick=()=>{active=c;document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("active",x.textContent===c.label));renderCurrent()};$("filters").appendChild(e)});
+function loadMaps(){if(mapsLoaded||!apiKey)return;const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(apiKey)+"&libraries=places";s.onload=()=>{mapsLoaded=true;placesService=new google.maps.places.PlacesService(document.createElement("div"));if(userLoc)search()};s.onerror=()=>showError("Google Maps yüklenemedi. API anahtarınızı ve API kısıtlamalarını kontrol edin.");document.head.appendChild(s)}
+if(apiKey)loadMaps();
+$("locBtn").onclick=()=>{if(!navigator.geolocation){$("locText").textContent="Konum desteklenmiyor";return}$("locBtn").disabled=true;$("locText").textContent="Konum aranıyor...";navigator.geolocation.getCurrentPosition(p=>{userLoc={lat:p.coords.latitude,lng:p.coords.longitude};$("locbar").classList.add("active");$("locText").innerHTML="<b>Konum bulundu</b>";$("locBtn").disabled=false;search()},()=>{$("locText").textContent="Konum izni verilmedi";$("locBtn").disabled=false})};
+$("refreshBtn").onclick=()=>{if(userLoc&&apiKey){cache=null;cacheAt=0;cacheLoc=null;search(true)}};
+function hav(a,b,c,d){const R=6371,r=x=>x*Math.PI/180,dl=r(c-a),dg=r(d-b),x=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dg/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+function score(x,avg){const m=30;return(x.reviews/(x.reviews+m))*x.rating+(m/(x.reviews+m))*avg}
+function ranked(a){const avg=a.reduce((s,x)=>s+x.rating,0)/(a.length||1);return[...a].sort((x,y)=>score(y,avg)-score(x,avg))}
+function showError(t){$("statusArea").innerHTML='<div class="error">'+t+"</div>"}function clearStatus(){$("statusArea").innerHTML=""}
+function categoryFilter(a){if(active.id==="all")return a;return a.filter(x=>{const h=(x.name+" "+x.addr+" "+(x.types||[]).join(" ")).toLocaleLowerCase("tr-TR");return active.keywords.some(k=>h.includes(k))})}
+function renderCurrent(){if(cache)renderList(ranked(categoryFilter(cache)));else renderList(ranked(active.id==="all"?sample:[]))}
+function search(force=false){
+clearStatus();
+if(!apiKey||!mapsLoaded||!placesService||!userLoc){$("modeText").textContent=apiKey?"Google Maps yükleniyor...":"Örnek veri";$("sampleNote").style.display=apiKey?"none":"block";renderCurrent();return}
+$("sampleNote").style.display="none";const now=Date.now(),same=cacheLoc&&hav(cacheLoc.lat,cacheLoc.lng,userLoc.lat,userLoc.lng)<MOVE_KM,fresh=cache&&(now-cacheAt<CACHE_TTL);
+if(!force&&same&&fresh){$("modeText").textContent="Önbellekten";$("refreshBtn").style.display="inline-block";renderCurrent();return}
+$("modeText").textContent="Google'dan aranıyor...";$("refreshBtn").style.display="none";$("list").innerHTML='<div class="spinner">Yakındaki restoranlar aranıyor...</div>';
+const req={location:new google.maps.LatLng(userLoc.lat,userLoc.lng),radius:3000,type:"restaurant"};
+placesService.nearbySearch(req,(results,status)=>{
+if(status!==google.maps.places.PlacesServiceStatus.OK||!results){showError("Sonuç alınamadı: "+status+". API anahtarı, Places API ve faturalandırmayı kontrol edin.");$("list").innerHTML="";return}
+cache=results.map(r=>({name:r.name||"İsimsiz restoran",rating:r.rating||0,reviews:r.user_ratings_total||0,addr:r.vicinity||"",emoji:"🍽️",types:r.types||[],lat:r.geometry?.location?.lat?.()??null,lng:r.geometry?.location?.lng?.()??null}));
+cacheAt=Date.now();cacheLoc={...userLoc};$("modeText").textContent="Canlı veri";$("refreshBtn").style.display="inline-block";renderCurrent();
+});
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function renderList(a){$("countText").textContent=a.length+" sonuç";$("list").innerHTML="";if(!a.length){$("list").innerHTML='<div class="spinner">Bu kategoride gösterilecek sonuç bulunamadı.</div>';return}a.forEach((r,i)=>{const d=userLoc&&r.lat!=null?hav(userLoc.lat,userLoc.lng,r.lat,r.lng).toFixed(1)+" km":"";const e=document.createElement("div");e.className="card";e.innerHTML='<div class="thumb">'+r.emoji+'</div><div class="info"><div class="top"><p class="name">'+esc(r.name)+'</p><span class="rank">#'+(i+1)+'</span></div><div class="addr">'+esc(r.addr)+'</div><div class="meta"><span><span class="star">★</span> '+r.rating.toFixed(1)+'</span><span>'+r.reviews+' yorum</span><span class="dist">'+d+"</span></div></div>";$("list").appendChild(e)})}
+renderList(ranked(sample));$("modeText").textContent="Örnek veri";
+</script>
+</body>
+</html>
