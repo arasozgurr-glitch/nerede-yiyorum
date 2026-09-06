@@ -1,13 +1,12 @@
 import React from "react";
 import { StyleSheet } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
 
 export default function RestaurantMap({ userLocation, restaurants, onSelect }) {
   if (!userLocation) return null;
 
   return (
     <MapView
-      provider={PROVIDER_GOOGLE}
       style={styles.map}
       initialRegion={{
         latitude: userLocation.latitude,
@@ -33,5 +32,5 @@ export default function RestaurantMap({ userLocation, restaurants, onSelect }) {
 }
 
 const styles = StyleSheet.create({
-  map: { flex: 1, minHeight: 400 },
+  map: { width: "100%", height: 500 },
 });

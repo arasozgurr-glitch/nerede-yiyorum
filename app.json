@@ -38,7 +38,10 @@
       "expo-status-bar"
     ],
     "extra": {
-      "apiBaseUrl": "https://nerede-yiyorum-1.onrender.com"
+      "apiBaseUrl": "https://nerede-yiyorum-1.onrender.com",
+      "eas": {
+        "projectId": "cd74e3c9-5095-47e9-bbf2-c48dd5587232"
+      }
     }
   }
 }
