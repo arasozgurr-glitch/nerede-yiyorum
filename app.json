@@ -6,12 +6,16 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.ozguraras.neredeyiyorum",
+      "buildNumber": "1",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Yakınınızdaki restoranları bulmak ve size konumunuza göre sonuçlar göstermek için konumunuza erişiyoruz."
       }
     },
     "android": {
+      "package": "com.ozguraras.neredeyiyorum",
+    "versionCode": 1,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
