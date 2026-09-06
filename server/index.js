@@ -180,7 +180,7 @@ app.get("/api/nearby", async (req, res) => {
 app.get("/api/details", async (req, res) => {
   try {
     const { placeId } = req.query;
-    if (!placeId || !/^places\//.test(placeId) && !placeId.includes("/")) {
+    if (!placeId || typeof placeId !== "string" || !placeId.trim()) {
       return res.status(400).json({ error: "Geçerli placeId zorunlu" });
     }
 
@@ -203,7 +203,7 @@ app.get("/api/details", async (req, res) => {
     ].join(",");
 
     const resource = placeId.startsWith("places/") ? placeId : `places/${placeId}`;
-    const data = await googleGet(`/${resource}`, fieldMask);
+    const data = await googleGet(`/${resource}?languageCode=tr`, fieldMask);
     const r = data;
 
     res.json({
