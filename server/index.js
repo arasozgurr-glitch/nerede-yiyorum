@@ -203,7 +203,7 @@ app.get("/api/details", async (req, res) => {
     ].join(",");
 
     const resource = placeId.startsWith("places/") ? placeId : `places/${placeId}`;
-    const data = await googleGet(`/${resource}`, fieldMask);
+    const data = await googleGet(`/${resource}?languageCode=tr`, fieldMask);
     const r = data;
 
     res.json({
